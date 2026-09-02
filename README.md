@@ -21,6 +21,6 @@ Ou seja, a IA não é só enfeite — ela é o motor que transforma foto em diag
 
 Morador de casa ou apartamento que quer entender e melhorar a segurança do próprio lar, mas não tem orçamento pra pagar consultoria especializada — principalmente gente de bairro com pouco recurso de segurança pública ou privada, que é justamente quem mais ganha com uma ferramenta acessível de diagnóstico preventivo.
 
-
+<img width="827" height="633" alt="Image" src="https://github.com/user-attachments/assets/cc6e83f4-b49c-4aa5-b8ba-7800c98213c3" />
 
 
