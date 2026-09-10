@@ -9,7 +9,7 @@
 * [4. A Solução com Inteligência Artificial](#4-a-solução-com-inteligência-artificial)
 * [5. Público Alvo](#5-público-alvo)
 * [6. Modelagem de Dados (UML)](#6-modelagem-de-dados-uml)
-* [1. Arquitetura do Sistema (Modelo C4)](#7-arquitetura-do-sistema-modelo-c4)
+* [7. Arquitetura do Sistema (Modelo C4)](#7-arquitetura-do-sistema-modelo-c4)
 
 ## 1. Sobre o Projeto
 A **House Security** é uma evolução do projeto de segurança residencial do primeiro semestre. A aplicação móvel permite que o morador envie a **planta da sua residência** (em formato de imagem ou PDF) para que uma Inteligência Artificial realize um diagnóstico preventivo automático, identificando pontos vulneráveis e recomendando soluções técnicas integradas ao catálogo de produtos da empresa.
