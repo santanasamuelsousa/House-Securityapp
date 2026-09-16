@@ -26,6 +26,7 @@ Muita gente não faz ideia de onde a própria casa tá vulnerável. Coisa como i
 O diferencial do House Security é usar IA pra transformar uma foto simples em diagnóstico de segurança:
 
 - *Análise de imagem por IA:* a IA analisa a foto da planta do imóvel pra achar pontos vulneráveis — tipo iluminação fraca, acesso exposto ou falha de cobertura.
+
 - *Geração de recomendação:* com os dados em mãos  o sistema monta um relatório automático com mapa de risco da casa e um plano de ação prático e personalizado pra melhorar a segurança.
 
 Ou seja, a IA não é só enfeite — ela é o motor que transforma foto em diagnóstico que dá pra agir, algo que normalmente só uma consultoria especializada faria.
@@ -53,7 +54,7 @@ A aplicação funciona como uma plataforma inteligente de prevenção de riscos.
 ### Nível 2: Diagrama de Contêineres 
 Abrindo a estrutura para entender o que acontece por baixo dos panos, dividimos o sistema em unidades independentes (contêineres). Essa separação garante que o aplicativo seja ágil, seguro e simples de manter.
 
-![Diagrama de Contêineres - Nível 2](docs/imagem_2026-09-15_225858937.png)
+![Diagrama de Contêineres - Nível 2](https://github.com/santanasamuelsousa/House-Securityapp/blob/main/imagem_2026-09-15_225858937.png)
 
 -*Aplicativo Mobile `[Flutter / Dart]`:* A interface direto na mão do usuário. Criada para oferecer uma experiência leve e fluida no celular, a aplicação cuida do envio das fotos, da navegação no catálogo e da exibição amigável do relatório de segurança. 
 
