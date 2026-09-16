@@ -26,7 +26,6 @@ Muita gente não faz ideia de onde a própria casa tá vulnerável. Coisa como i
 O diferencial do House Security é usar IA pra transformar uma foto simples em diagnóstico de segurança:
 
 - *Análise de imagem por IA:* a IA analisa a foto da planta do imóvel pra achar pontos vulneráveis — tipo iluminação fraca, acesso exposto ou falha de cobertura.
-
 - *Geração de recomendação:* com os dados em mãos  o sistema monta um relatório automático com mapa de risco da casa e um plano de ação prático e personalizado pra melhorar a segurança.
 
 Ou seja, a IA não é só enfeite — ela é o motor que transforma foto em diagnóstico que dá pra agir, algo que normalmente só uma consultoria especializada faria.
