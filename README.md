@@ -10,6 +10,7 @@
 * [5. Público Alvo](#5-público-alvo)
 * [6. Modelagem de Dados (UML)](#6-modelagem-de-dados-uml)
 * [7. Arquitetura do Sistema (Modelo C4)](#7-arquitetura-do-sistema-modelo-c4)
+* [8.Decisões Tecnológicas e Protocolos](#8-decisões-tecnológicas-e-protocolos) 
 
 ## 1. Sobre o Projeto
 O **House Security** é uma evolução do projeto de segurança residencial do primeiro semestre. A aplicação móvel permite que o morador envie a **planta da sua residência** (em formato de imagem ou PDF) para que uma Inteligência Artificial realize um diagnóstico preventivo automático, identificando pontos vulneráveis e recomendando soluções técnicas integradas ao catálogo de produtos da empresa.
@@ -57,3 +58,16 @@ Abrindo a estrutura para entender o que acontece por baixo dos panos, dividimos 
 - *Back-End `[Java / Spring Boot]`:* O cérebro da arquitetura. Esta API REST assume o trabalho pesado do sistema: valida as informações do app, envia os arquivos para processamento na IA, cruza os riscos encontrados com os produtos adequados e orquestra os dados. 
 - *Banco de Dados `[MySQL Server]`:* A camada de armazenamento confiável. Guarda com segurança as contas dos usuários, os históricos de diagnósticos gerados e o catálogo completo de equipamentos de segurança. 
 - *Serviço de IA `[Google Gemini API]`:* O motor externo é acionado pelo Back-End para realizar o processamento de visão computacional na imagem da planta e retornar o diagnóstico de riscos.
+
+- ## 8. Decisões Tecnológicas e Protocolos Para construir o **House Security**, escolhemos cada tecnologia buscando um equilíbrio entre simplicidade, segurança e boa organização do código.
+
+**Tecnologias do Projeto**
+- *Mobile (Flutter / Dart):* Usamos o Flutter para criar a aplicação móvel com uma única base de código. Além de deixar a navegação leve para o usuário, ele facilita o upload de imagens da galeria, foto da câmera e envio de arquivos em PDF.
+- *Back-End (Java / Spring Boot):* O Java com Spring Boot atua como o motor central da aplicação. Essa tecnologia nos dá a estrutura necessária para criar uma API REST organizada e segura, cuidando das regras do sistema e fazendo a ponte entre o aplicativo, a inteligência artificial e o banco de dados.
+- *Banco de Dados (MySQL Server):* Escolhemos o MySQL para garantir o armazenamento confiável dos dados. É um banco relacional maduro onde mantemos os cadastros de usuários, o histórico de relatórios gerados e todo o catálogo de produtos de segurança.
+- *Inteligência Artificial (Google Gemini API):* Integramos a API do Google Gemini por sua capacidade de análise visual e leitura de documentos (multimodal). Com ela, conseguimos enviar a planta baixa e receber uma leitura clara dos pontos de vulnerabilidade do imóvel. 
+
+**Protocolos e Comunicação** 
+*HTTPS:* Como lidamos com imagens de imóveis e informações pessoais, o protocolo HTTPS é indispensável. Ele garante que os dados trafegam com criptografia do celular do usuário até o nosso servidor. 
+*REST e JSON:* A comunicação entre o aplicativo e a API segue o padrão REST, trocando dados no formato JSON. É uma estrutura leve e rápida para enviar as requisições da planta e receber a resposta da análise.
+- *TCP / Porta 3306:* É o canal direto entre a nossa API em Java e o MySQL. O protocolo TCP garante uma conexão estável para que nenhuma consulta ou gravação de laudo se perca pelo caminho. 
