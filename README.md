@@ -45,7 +45,9 @@ A aplicação funciona como uma plataforma inteligente de prevenção de riscos.
 ![Diagrama de Contexto - Nível 1](docs/imagem_2026-09-15_225515350.png)
 
 -*Cliente `[Pessoa]`:* O morador que envia a planta da sua residência (em foto ou PDF) para identificar pontos fracos de proteção e receber diagnósticos práticos para o dia a dia.
+
 -*Sistema House Security `[Sistema de Software]`:* O ecossistema central da aplicação. É responsável por receber a solicitação do cliente, gerenciar o fluxo de análise e entregar o relatório final junto às soluções do catálogo. 
+
 -*Google Gemini API `[Sistema Externo]`:* A inteligência artificial integrada que interpreta o layout visual das plantas baixas e mapeia automaticamente os pontos vulneráveis do imóvel. 
 
 ### Nível 2: Diagrama de Contêineres 
@@ -54,6 +56,9 @@ Abrindo a estrutura para entender o que acontece por baixo dos panos, dividimos 
 ![Diagrama de Contêineres - Nível 2](docs/imagem_2026-09-15_225858937.png)
 
 -*Aplicativo Mobile `[Flutter / Dart]`:* A interface direto na mão do usuário. Criada para oferecer uma experiência leve e fluida no celular, a aplicação cuida do envio das fotos, da navegação no catálogo e da exibição amigável do relatório de segurança. 
+
 -*Back-End `[Java / Spring Boot]`:* O cérebro da arquitetura. Esta API REST assume o trabalho pesado do sistema: valida as informações do app, envia os arquivos para processamento na IA, cruza os riscos encontrados com os produtos adequados e orquestra os dados. 
+
 -*Banco de Dados `[MySQL Server]`:* A camada de armazenamento confiável. Guarda com segurança as contas dos usuários, os históricos de diagnósticos gerados e o catálogo completo de equipamentos de segurança. 
+
 -*Serviço de IA `[Google Gemini API]`:* O motor externo é acionado pelo Back-End para realizar o processamento de visão computacional na imagem da planta e retornar o diagnóstico de riscos.
