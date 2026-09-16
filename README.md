@@ -42,7 +42,7 @@ A arquitetura do **House Security** foi desenhada utilizando a metodologia do **
 ### Nível 1: Diagrama de Contexto
 A aplicação funciona como uma plataforma inteligente de prevenção de riscos. O objetivo do Nível 1 é demonstrar a visão macro do produto, focando em como o sistema se conecta ao usuário e a serviços parceiros, sem se prender a detalhes internos de código.
 
-![Diagrama de Contexto - Nível 1](docs/imagem_2026-09-15_225515350.png)
+![Diagrama de Contexto - Nível 1](https://github.com/santanasamuelsousa/House-Securityapp/blob/main/imagem_2026-09-15_225515350.png)
 
 -*Cliente `[Pessoa]`:* O morador que envia a planta da sua residência (em foto ou PDF) para identificar pontos fracos de proteção e receber diagnósticos práticos para o dia a dia.
 
