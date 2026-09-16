@@ -44,7 +44,7 @@ A aplicação funciona como uma plataforma inteligente de prevenção de riscos.
 
 ![Diagrama de Contexto - Nível 1](docs/imagem_2026-09-15_225515350.png)
 
--*Cliente `[Pessoa]`:* O morador que envia a planta da sua residência (em foto ou PDF) para identificar pontos fracos de proteção e receber diagnósticos práticos para o dia a dia. 
+-*Cliente `[Pessoa]`:* O morador que envia a planta da sua residência (em foto ou PDF) para identificar pontos fracos de proteção e receber diagnósticos práticos para o dia a dia.
 -*Sistema House Security `[Sistema de Software]`:* O ecossistema central da aplicação. É responsável por receber a solicitação do cliente, gerenciar o fluxo de análise e entregar o relatório final junto às soluções do catálogo. 
 -*Google Gemini API `[Sistema Externo]`:* A inteligência artificial integrada que interpreta o layout visual das plantas baixas e mapeia automaticamente os pontos vulneráveis do imóvel. 
 
