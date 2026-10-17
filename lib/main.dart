@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(const MyApp());
@@ -29,18 +31,52 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _handleLogin() {
-    if (_formKey.currentState!.validate()) {
-      // Exibe uma mensagem de sucesso (Apenas para demonstração)
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Realizando login para: ${_emailController.text}'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+  
+Future<void> _handleLogin() async {
+  if (!_formKey.currentState!.validate()) {
+    return;
   }
+
+  try {
+    final resposta = await http.post(
+      Uri.parse('http://localhost:8080/api/status'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'email': _emailController.text.trim(),
+        'senha': _passwordController.text,
+      }),
+    );
+
+    final dados = jsonDecode(resposta.body);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          dados['mensagem'] ?? 'Resposta recebida do servidor.',
+        ),
+        backgroundColor:
+            resposta.statusCode == 200 ? Colors.green : Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Não foi possível conectar ao servidor Java.',
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+}
 
   @override
   Widget build(BuildContext context) {
