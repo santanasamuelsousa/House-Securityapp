@@ -1,209 +1,442 @@
+// HOUSE SECURITY - Tela de análise de planta integrada ao Back-End
+
 import 'dart:convert';
 import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:image_picker/image_picker.dart';
 
-const chave = String.fromEnvironment('GEMINI_KEY');
-const modelos = ['gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
-const prompt = 'Você é especialista em segurança residencial. Analise esta planta baixa e responda só em JSON: '
-    '{"nivel": 0 (crítico), 1 (atenção) ou 2 (protegido), '
-    '"recomendacoes": [ações práticas e curtas em português, cada uma citando o cômodo ou ponto da planta]}';
-const cores = [Color(0xFFE0603C), Color(0xFFF2A93B), Color(0xFF3E8E6B)];
-const niveis = ['Crítico', 'Atenção', 'Protegido'];
+// ---------- Cores ----------
+const azul = Color(0xFF1E3A8A);
+const verde = Color(0xFF2E7D32);
+const laranja = Color(0xFFF57C00);
+const vermelho = Color(0xFFD32F2F);
+const corRisco = {'ALTO': vermelho, 'MEDIO': laranja, 'BAIXO': verde};
 
-class Analise {
-  final String nome;
-  final int nivel;
-  final List<String> recs;
-  final Uint8List foto;
-  Analise(this.nome, this.nivel, this.recs, this.foto);
+// ---------- Dados do relatório ----------
+class Ponto {
+  final String local, texto, nivel; // nivel: ALTO, MEDIO ou BAIXO
+  const Ponto(this.local, this.texto, this.nivel);
 }
 
-Future<Analise> analisarPlanta(String nome, Uint8List foto) async {
-  if (chave.isEmpty) throw 'chave do Gemini não configurada. Rode com --dart-define=GEMINI_KEY=sua_chave';
-  http.Response? r;
-  Object? falha;
-  var usado = '';
-  final base = chave.startsWith('AQ.')
-      ? 'https://aiplatform.googleapis.com/v1/publishers/google/models'
-      : 'https://generativelanguage.googleapis.com/v1beta/models';
-  for (final m in modelos) {
-    usado = m;
-    try {
-      r = await http
-          .post(
-            Uri.parse('$base/$m:generateContent?key=$chave'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'contents': [
-                {
-                  'role': 'user',
-                  'parts': [
-                    {'inlineData': {'mimeType': foto[0] == 0x89 ? 'image/png' : 'image/jpeg', 'data': base64Encode(foto)}},
-                    {'text': prompt},
-                  ],
-                },
-              ],
-              'generationConfig': {'responseMimeType': 'application/json'},
-            }),
-          )
-          .timeout(const Duration(seconds: 45));
-      if (![503, 429, 404, 500].contains(r.statusCode)) break;
-    } catch (e) {
-      falha = e;
-    }
-    await Future.delayed(const Duration(seconds: 2));
-  }
-  if (r == null) throw 'sem resposta da IA: $falha';
-  final corpo = jsonDecode(r.body);
-  if (r.statusCode != 200) throw 'erro ${r.statusCode} no modelo $usado: ${corpo['error']?['message'] ?? r.body}';
-  final cand = corpo['candidates'];
-  if (cand == null || cand.isEmpty) throw 'a IA não devolveu resposta (${corpo['promptFeedback']?['blockReason'] ?? 'sem motivo'})';
-  final j = jsonDecode(cand[0]['content']['parts'].map((p) => p['text'] ?? '').join());
-  final n = (num.tryParse('${j['nivel']}') ?? 1).clamp(0, 2).toInt();
-  return Analise(nome, n, [for (final e in j['recomendacoes']) '$e'], foto);
-}
+class Relatorio {
+  final List<String> identificado, plano;
+  final List<Ponto> pontos;
+  final int nota; // de 0 a 10
+  final String justificativa;
 
-void main() => runApp(MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true, colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1B2F3D))),
-      home: const Home(),
-    ));
+  const Relatorio({
+    required this.identificado,
+    required this.pontos,
+    required this.plano,
+    required this.nota,
+    required this.justificativa,
+  });
 
-class Home extends StatefulWidget {
-  const Home({super.key});
-
-  @override
-  State<Home> createState() => _HomeState();
-}
-
-class _HomeState extends State<Home> {
-  final lista = <Analise>[];
-
-  Future<void> nova() async {
-    final a = await Navigator.push<Analise>(context, MaterialPageRoute(builder: (_) => const NovaAnalise()));
-    if (a != null && mounted) setState(() => lista.insert(0, a));
-  }
-
-  void avisos() {
-    final c = lista.where((a) => a.nivel == 0).map((a) => a.nome);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(c.isEmpty ? 'Nenhum alerta' : 'Risco crítico: ${c.join(', ')}')));
-  }
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('House Security'), actions: [
-          IconButton(onPressed: avisos, icon: const Icon(Icons.notifications_none)),
-          IconButton(onPressed: () => setState(lista.clear), icon: const Icon(Icons.delete_outline)),
-        ]),
-        body: lista.isEmpty
-            ? const Center(child: Text('Nenhuma análise ainda.\nToque em Nova análise.', textAlign: TextAlign.center))
-            : ListView(children: [
-                for (final a in lista)
-                  ListTile(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => Detalhe(a))),
-                    onLongPress: () => setState(() => lista.remove(a)),
-                    leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(8), child: Image.memory(a.foto, width: 56, height: 56, fit: BoxFit.cover)),
-                    title: Text(a.nome),
-                    subtitle: Text('${a.recs.length} pontos de atenção'),
-                    trailing: Text(niveis[a.nivel], style: TextStyle(color: cores[a.nivel], fontWeight: FontWeight.w700)),
-                  ),
-              ]),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: nova,
-          icon: const Icon(Icons.add_photo_alternate_outlined),
-          label: const Text('Nova análise'),
-        ),
+  // Transforma o JSON do back-end em objeto do Flutter
+  factory Relatorio.fromJson(Map<String, dynamic> j) => Relatorio(
+        identificado: List<String>.from(j['identificado'] ?? []),
+        pontos: [
+          for (final p in j['pontos'] ?? [])
+            Ponto(
+              '${p['local']}',
+              '${p['descricao']}',
+              '${p['nivel']}'.toUpperCase().replaceAll('É', 'E'),
+            ),
+        ],
+        plano: List<String>.from(j['plano'] ?? []),
+        nota: (num.tryParse('${j['nota']}') ?? 0).round().clamp(0, 10).toInt(),
+        justificativa: '${j['justificativaNota'] ?? ''}',
       );
 }
 
-class NovaAnalise extends StatefulWidget {
-  const NovaAnalise({super.key});
+// ---------- Integração com Back-End ----------
+const String urlBackend = 'http://localhost:8080';
 
-  @override
-  State<NovaAnalise> createState() => _NovaAnaliseState();
+Future<Relatorio> buscarRelatorio(String nome, Uint8List bytes) async {
+  final pedido = http.MultipartRequest('POST', Uri.parse('$urlBackend/api/analise'))
+    ..files.add(http.MultipartFile.fromBytes('arquivo', bytes, filename: nome));
+
+  final resposta = await http.Response.fromStream(
+    await pedido.send().timeout(const Duration(minutes: 3)),
+  );
+
+  if (resposta.statusCode != 200) {
+    throw 'O servidor respondeu com status ${resposta.statusCode}';
+  }
+
+  var texto = utf8.decode(resposta.bodyBytes);
+
+  if (texto.contains('{') && texto.contains('}')) {
+    texto = texto.substring(texto.indexOf('{'), texto.lastIndexOf('}') + 1);
+  }
+
+  final Map<String, dynamic> j = jsonDecode(texto);
+
+  if (j['erro'] != null) {
+    throw '${j['erro']}';
+  }
+
+  return Relatorio.fromJson(j);
 }
 
-class _NovaAnaliseState extends State<NovaAnalise> {
-  final nome = TextEditingController();
-  Uint8List? foto;
-  bool carregando = false;
-  String? erro;
+// ---------- App ----------
+void main() => runApp(MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: azul),
+        scaffoldBackgroundColor: const Color(0xFFF4F6FA),
+      ),
+      home: const Tela(),
+    ));
+
+// Os 4 estados da tela
+enum Estado { inicio, escolhido, carregando, resultado }
+
+class Tela extends StatefulWidget {
+  const Tela({super.key});
+  @override
+  State<Tela> createState() => _TelaState();
+}
+
+class _TelaState extends State<Tela> {
+  Estado estado = Estado.inicio;
+  PlatformFile? arquivo; // arquivo escolhido
+  Uint8List? bytes; // conteúdo do arquivo
+  Relatorio? relatorio; // resultado da IA
+  String? erro; // mensagem de erro (se houver)
 
   Future<void> escolher() async {
-    final f = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 1600, imageQuality: 85);
-    if (f != null) foto = await f.readAsBytes();
-    setState(() {});
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['png', 'jpg', 'jpeg'],
+        withData: true,
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final f = result.files.first;
+      final extensao = f.extension?.toLowerCase() ?? '';
+      final extensoesPermitidas = ['png', 'jpg', 'jpeg'];
+
+      if (!extensoesPermitidas.contains(extensao)) {
+        setState(() {
+          erro = 'Formato (.$extensao) não permitido. Escolha PNG, JPG ou JPEG.';
+        });
+        return;
+      }
+
+      final dados = f.bytes;
+      if (dados == null) {
+        setState(() => erro = 'Não foi possível ler o arquivo selecionado.');
+        return;
+      }
+
+      if (dados.length > 20 * 1024 * 1024) {
+        setState(() => erro = 'Arquivo muito grande (máximo 20 MB).');
+        return;
+      }
+
+      setState(() {
+        arquivo = f;
+        bytes = dados;
+        erro = null;
+        estado = Estado.escolhido;
+      });
+    } catch (e) {
+      setState(() => erro = 'Não foi possível abrir o arquivo: $e');
+    }
+  }
+
+  void limpar() {
+    setState(() {
+      arquivo = null;
+      bytes = null;
+      relatorio = null;
+      erro = null;
+      estado = Estado.inicio;
+    });
   }
 
   Future<void> analisar() async {
     setState(() {
-      carregando = true;
+      estado = Estado.carregando;
       erro = null;
     });
     try {
-      final a = await analisarPlanta(nome.text.trim(), foto!);
-      if (mounted) Navigator.pop(context, a);
+      final r = await buscarRelatorio(arquivo!.name, bytes!);
+      if (!mounted) return;
+      setState(() {
+        relatorio = r;
+        estado = Estado.resultado;
+      });
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          carregando = false;
-          erro = 'Não deu pra analisar: $e';
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        erro = 'Não deu para analisar: $e';
+        estado = Estado.escolhido;
+      });
     }
   }
 
   @override
-  void dispose() {
-    nome.dispose();
-    super.dispose();
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(
+          backgroundColor: azul,
+          foregroundColor: Colors.white,
+          centerTitle: true,
+          title: const Text('House Security', style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: switch (estado) {
+                Estado.inicio => telaInicio(),
+                Estado.escolhido => telaEscolhido(),
+                Estado.carregando => telaCarregando(),
+                Estado.resultado => telaResultado(),
+              },
+            ),
+          ),
+        ),
+      );
+
+  // ---------- ESTADO 1: inicial ----------
+  Widget telaInicio() => ListView(padding: const EdgeInsets.all(20), children: [
+        const Text('Descubra os pontos fracos da sua casa',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Text('Envie a planta da sua residência e mostramos as vulnerabilidades e o que fazer.',
+            style: TextStyle(color: Colors.grey.shade700, fontSize: 15)),
+        const SizedBox(height: 24),
+
+        InkWell(
+          onTap: escolher,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 40),
+            decoration: BoxDecoration(
+              color: azul.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: azul.withOpacity(0.4), width: 2),
+            ),
+            child: const Column(children: [
+              Icon(Icons.cloud_upload_outlined, size: 56, color: azul),
+              SizedBox(height: 12),
+              Text('Toque para enviar a planta',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+              SizedBox(height: 4),
+              Text('PNG, JPG ou JPEG', style: TextStyle(color: Colors.grey)),
+            ]),
+          ),
+        ),
+
+        if (erro != null) mensagemErro(),
+        const SizedBox(height: 20),
+
+        botao('Escolher arquivo', Icons.folder_open_outlined, escolher),
+      ]);
+
+  // ---------- ESTADO 2: arquivo escolhido ----------
+  Widget telaEscolhido() => ListView(padding: const EdgeInsets.all(20), children: [
+        const Text('Confira a sua planta',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            color: Colors.white,
+            constraints: const BoxConstraints(maxHeight: 320),
+            child: Image.memory(bytes!, fit: BoxFit.contain),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text('${arquivo!.name} · ${(bytes!.length / 1024).round()} KB',
+            textAlign: TextAlign.center),
+        const SizedBox(height: 14),
+        Row(children: [
+          Expanded(
+            child: OutlinedButton.icon(
+                onPressed: escolher,
+                icon: const Icon(Icons.swap_horiz),
+                label: const Text('Trocar')),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: limpar,
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Remover'),
+              style: OutlinedButton.styleFrom(foregroundColor: vermelho),
+            ),
+          ),
+        ]),
+        if (erro != null) mensagemErro(),
+        const SizedBox(height: 16),
+        botao('Analisar Planta', Icons.auto_awesome, analisar),
+      ]);
+
+  // ---------- ESTADO 3: carregando ----------
+  Widget telaCarregando() => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            SizedBox(
+                width: 70,
+                height: 70,
+                child: CircularProgressIndicator(strokeWidth: 6, color: azul)),
+            SizedBox(height: 28),
+            Text('Estamos analisando sua planta residencial...',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            SizedBox(height: 12),
+            Text('Isso pode levar até 1 minuto. Não feche o aplicativo.',
+                textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+          ]),
+        ),
+      );
+
+  // ---------- ESTADO 4: resultado ----------
+  Widget telaResultado() {
+    final r = relatorio!;
+    final corNota = r.nota >= 7 ? verde : (r.nota >= 4 ? laranja : vermelho);
+
+    return ListView(padding: const EdgeInsets.all(20), children: [
+      const Text('Relatório de segurança',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 16),
+      secao(Icons.home_work_outlined, 'O que foi identificado', azul, [
+        for (final t in r.identificado) linha(Icons.check_circle_outline, azul, t),
+      ]),
+      secao(Icons.warning_amber_rounded, 'Pontos vulneráveis', vermelho, [
+        for (final p in r.pontos) cartaoPonto(p),
+      ]),
+      secao(Icons.assignment_turned_in_outlined, 'Plano de ação', verde, [
+        for (var i = 0; i < r.plano.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              CircleAvatar(
+                radius: 12,
+                backgroundColor: verde,
+                child: Text('${i + 1}',
+                    style: const TextStyle(color: Colors.white, fontSize: 12)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(child: Text(r.plano[i])),
+            ]),
+          ),
+      ]),
+      secao(Icons.shield_outlined, 'Nota de segurança', azul, [
+        Row(children: [
+          SizedBox(
+            width: 90,
+            height: 90,
+            child: Stack(alignment: Alignment.center, children: [
+              SizedBox.expand(
+                child: CircularProgressIndicator(
+                  value: r.nota / 10,
+                  strokeWidth: 9,
+                  color: corNota,
+                  backgroundColor: corNota.withOpacity(0.15),
+                ),
+              ),
+              Text('${r.nota}/10',
+                  style: TextStyle(
+                      fontSize: 22, fontWeight: FontWeight.bold, color: corNota)),
+            ]),
+          ),
+          const SizedBox(width: 16),
+          Expanded(child: Text(r.justificativa)),
+        ]),
+      ]),
+      const SizedBox(height: 6),
+      botao('Analisar outra planta', Icons.refresh, limpar),
+    ]);
   }
 
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Nova análise')),
-        body: ListView(padding: const EdgeInsets.all(20), children: [
-          TextField(
-            controller: nome,
-            onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(labelText: 'Nome do imóvel', border: OutlineInputBorder()),
-          ),
-          const SizedBox(height: 16),
-          if (foto != null) Image.memory(foto!, height: 200),
-          OutlinedButton.icon(
-            onPressed: carregando ? null : escolher,
-            icon: const Icon(Icons.upload_file),
-            label: Text(foto == null ? 'Escolher planta' : 'Trocar planta'),
-          ),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: nome.text.trim().isNotEmpty && foto != null && !carregando ? analisar : null,
-            child: carregando
-                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Analisar com IA'),
-          ),
-          if (erro != null) Padding(padding: const EdgeInsets.only(top: 16), child: Text(erro!, style: const TextStyle(color: Colors.red))),
-        ]),
+  // ---------- Componentes Reutilizáveis ----------
+  Widget mensagemErro() => Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: Text(erro!, style: const TextStyle(color: vermelho)),
       );
 }
 
-class Detalhe extends StatelessWidget {
-  final Analise a;
-  const Detalhe(this.a, {super.key});
+Widget botao(String texto, IconData icone, VoidCallback aoTocar) => FilledButton.icon(
+      onPressed: aoTocar,
+      icon: Icon(icone),
+      label: Text(texto),
+      style: FilledButton.styleFrom(
+        minimumSize: const Size.fromHeight(54),
+        backgroundColor: azul,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+    );
 
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(a.nome)),
-        body: ListView(padding: const EdgeInsets.all(20), children: [
-          Image.memory(a.foto),
+Widget secao(IconData icone, String titulo, Color cor, List<Widget> filhos) => Card(
+      elevation: 0,
+      color: Colors.white,
+      margin: const EdgeInsets.only(bottom: 14),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Colors.black12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(icone, color: cor),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(titulo,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+          ]),
           const SizedBox(height: 12),
-          Text('${niveis[a.nivel]} · ${a.recs.length} pontos',
-              style: TextStyle(color: cores[a.nivel], fontWeight: FontWeight.w700, fontSize: 18)),
-          for (final d in a.recs) ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.shield_outlined), title: Text(d)),
+          ...filhos,
         ]),
-      );
+      ),
+    );
+
+Widget linha(IconData icone, Color cor, String texto) => Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icone, size: 20, color: cor),
+        const SizedBox(width: 10),
+        Expanded(child: Text(texto)),
+      ]),
+    );
+
+Widget cartaoPonto(Ponto p) {
+  final cor = corRisco[p.nivel] ?? Colors.grey;
+  return Container(
+    width: double.infinity,
+    margin: const EdgeInsets.only(bottom: 10),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: cor.withOpacity(0.07),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: cor.withOpacity(0.4)),
+    ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+          decoration: BoxDecoration(color: cor, borderRadius: BorderRadius.circular(20)),
+          child: Text(p.nivel == 'MEDIO' ? 'MÉDIO' : p.nivel,
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+            child: Text(p.local, style: const TextStyle(fontWeight: FontWeight.bold))),
+      ]),
+      const SizedBox(height: 6),
+      Text(p.texto),
+    ]),
+  );
 }
