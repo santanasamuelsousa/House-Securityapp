@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'tela_cadastro.dart';
 
 void main() {
   runApp(const MyApp());
@@ -39,7 +40,7 @@ Future<void> _handleLogin() async {
 
   try {
     final resposta = await http.post(
-      Uri.parse('http://localhost:8080/api/status'),
+      Uri.parse('http://localhost:8080/api/login'),
       headers: {
         'Content-Type': 'application/json',
       },
@@ -259,18 +260,25 @@ Future<void> _handleLogin() async {
                             'Não tem uma conta? ',
                             style: TextStyle(color: Colors.grey[600]),
                           ),
-                          GestureDetector(
-                            onTap: () {
-                              // Ação de navegar para a tela de cadastro
-                            },
-                            child: const Text(
-                              'Cadastre-se',
-                              style: TextStyle(
-                                color: Color(0xFF2D3436),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                          
+TextButton(
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const TelaCadastroOpcaoC(),
+      ),
+    );
+  },
+  child: const Text(
+    'Cadastre-se',
+    style: TextStyle(
+      color: Color(0xFF2D3436),
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+),
+
                         ],
                       ),
                     ],
