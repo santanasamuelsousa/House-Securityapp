@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'tela_cadastro.dart';
+import 'tela_Cadastro.dart';
+import 'Tela_Principal.dart';
+import 'usuario_logado.dart';
 
 void main() {
   runApp(const MyApp());
@@ -54,16 +56,31 @@ Future<void> _handleLogin() async {
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          dados['mensagem'] ?? 'Resposta recebida do servidor.',
-        ),
-        backgroundColor:
-            resposta.statusCode == 200 ? Colors.green : Colors.red,
-        behavior: SnackBarBehavior.floating,
+if (resposta.statusCode == 200) {
+  UsuarioLogado.definirUsuario(
+    id: dados['idCliente'],
+    nomeUsuario: dados['nome'],
+    emailUsuario: dados['email'],
+  );
+
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const Tela(),
+    ),
+  );
+} else {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        dados['mensagem'] ?? 'E-mail ou senha incorretos.',
       ),
-    );
+      backgroundColor: Colors.red,
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
+}
+
   } catch (e) {
     if (!mounted) return;
 

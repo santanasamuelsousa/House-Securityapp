@@ -1,12 +1,13 @@
-
 package com.housesecurity.ia;
 
+import com.housesecurity.ia.model.Cliente;
 import com.housesecurity.ia.service.LoginService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api")
@@ -19,7 +20,7 @@ public class LoginController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(
+    public ResponseEntity<Map<String, Object>> login(
             @RequestBody Map<String, String> dados) {
 
         String email = dados.get("email");
@@ -27,21 +28,34 @@ public class LoginController {
 
         if (email == null || senha == null ||
                 email.isBlank() || senha.isBlank()) {
+
             return ResponseEntity.badRequest()
-                    .body(Map.of("mensagem",
-                            "E-mail e senha são obrigatórios."));
+                    .body(Map.of(
+                            "mensagem",
+                            "E-mail e senha são obrigatórios."
+                    ));
         }
 
-        boolean autenticado =
+        Optional<Cliente> resultado =
                 loginService.autenticar(email, senha);
 
-        if (!autenticado) {
+        if (resultado.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("mensagem",
-                            "E-mail ou senha inválidos."));
+                    .body(Map.of(
+                            "mensagem",
+                            "E-mail ou senha inválidos."
+                    ));
         }
 
+        Cliente cliente = resultado.get();
+
         return ResponseEntity.ok(
-                Map.of("mensagem", "Login realizado com sucesso."));
+                Map.of(
+                        "mensagem", "Login realizado com sucesso.",
+                        "idCliente", cliente.getIdCliente(),
+                        "nome", cliente.getNome(),
+                        "email", cliente.getEmail()
+                )
+        );
     }
 }

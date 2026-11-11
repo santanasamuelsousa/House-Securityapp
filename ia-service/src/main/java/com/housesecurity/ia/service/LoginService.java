@@ -22,19 +22,26 @@ public class LoginService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public boolean autenticar(String email, String senha) {
-        Optional<Cliente> resultado =
-                clienteRepository.findByEmail(email);
+   public Optional<Cliente> autenticar(String email, String senha) {
 
-        if (resultado.isEmpty()) {
-            return false;
-        }
+    Optional<Cliente> resultado =
+            clienteRepository.findByEmail(email);
 
-        Cliente cliente = resultado.get();
-
-        return passwordEncoder.matches(
-                senha,
-                cliente.getSenha()
-        );
+    if (resultado.isEmpty()) {
+        return Optional.empty();
     }
+
+    Cliente cliente = resultado.get();
+
+    boolean senhaCorreta = passwordEncoder.matches(
+            senha,
+            cliente.getSenha()
+    );
+
+    if (!senhaCorreta) {
+        return Optional.empty();
+    }
+
+    return Optional.of(cliente);
+}
 }
