@@ -1,6 +1,7 @@
-
 package com.housesecurity.ia;
 
+import com.housesecurity.ia.model.Atestado;
+import com.housesecurity.ia.repository.AtestadoRepository;
 import com.housesecurity.ia.service.GroqService;
 
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @CrossOrigin(origins = "*")
@@ -20,16 +22,20 @@ import java.util.Map;
 public class AnaliseController {
 
     private final GroqService groqService;
+    private final AtestadoRepository atestadoRepository;
 
-    public AnaliseController(GroqService groqService) {
+    public AnaliseController(
+            GroqService groqService,
+            AtestadoRepository atestadoRepository) {
         this.groqService = groqService;
+        this.atestadoRepository = atestadoRepository;
     }
 
     @PostMapping(
         value = "/analise",
         consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
-    public ResponseEntity<Map<String, String>> analisar(
+    public ResponseEntity analisar(
             @RequestParam("arquivo") MultipartFile arquivo) {
 
         if (arquivo == null || arquivo.isEmpty()) {
@@ -67,6 +73,21 @@ public class AnaliseController {
                 arquivoTemporario
             );
 
+            String verificacao = relatorio.trim().toUpperCase();
+            if (verificacao.contains("NAO_E_PLANTA_RESIDENCIAL")
+                    || verificacao.startsWith("NÃO É UMA PLANTA RESIDENCIAL")) {
+                return ResponseEntity.badRequest().body(
+                    Map.of("mensagem",
+                        "Isto não é uma planta residencial. Por favor, troque o arquivo por uma planta residencial válida e tente novamente.")
+                );
+            }
+
+            Atestado registro = new Atestado();
+            registro.setUrlArquivo(Files.readAllBytes(arquivoTemporario));
+            registro.setAnaliseIa(relatorio);
+            registro.setCriacao(LocalDateTime.now());
+            atestadoRepository.save(registro);
+
             return ResponseEntity.ok(
                 Map.of("relatorio", relatorio)
             );
@@ -82,7 +103,7 @@ public class AnaliseController {
 
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(
                 Map.of("mensagem",
-                    "Não foi possível obter a análise da inteligência artificial.")
+                    "Não foi possível obter a análise, tente novamente em alguns instantes.")
             );
 
         } finally {
@@ -91,9 +112,29 @@ public class AnaliseController {
                 try {
                     Files.deleteIfExists(arquivoTemporario);
                 } catch (IOException ignored) {
-                    // Não interrompe a resposta caso a exclusão falhe.
                 }
             }
         }
+    }
+
+    @GetMapping("/analises")
+    public ResponseEntity listarAnalises() {
+        return ResponseEntity.ok(
+            atestadoRepository.findAllByOrderByCriacaoDesc()
+        );
+    }
+
+    @DeleteMapping("/analises/{id}")
+    public ResponseEntity excluirAnalise(@PathVariable Integer id) {
+        if (!atestadoRepository.existsById(id)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                Map.of("mensagem", "Relatório não encontrado.")
+            );
+        }
+
+        atestadoRepository.deleteById(id);
+        return ResponseEntity.ok(
+            Map.of("mensagem", "Relatório excluído com sucesso.")
+        );
     }
 }

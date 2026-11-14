@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'Tela_Historico.dart';
 
 const azul = Color(0xFF1E3A8A);
 const limiteArquivo = 20 * 1024 * 1024; // 20 MB
@@ -170,6 +171,18 @@ class _TelaState extends State<Tela> {
           'House Security',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Histórico de análises',
+            icon: const Icon(Icons.table_chart_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TelaHistorico()),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: Center(
@@ -188,7 +201,7 @@ class _TelaState extends State<Tela> {
                 const SizedBox(height: 8),
                 Text(
                   'Selecione a planta da sua residência para '
-                  'realizar a análise de segurança com IA.',
+                  'realizarmos a análise de segurança.',
                   style: TextStyle(
                     fontSize: 15,
                     color: Colors.grey.shade700,
@@ -241,7 +254,7 @@ class _TelaState extends State<Tela> {
                           )
                         : const Icon(Icons.security),
                     label: Text(
-                      analisando ? 'Analisando planta...' : 'Analisar planta com IA',
+                      analisando ? 'Analisando planta...' : 'Analisar planta',
                     ),
                     style: FilledButton.styleFrom(
                       backgroundColor: azul,
@@ -422,9 +435,9 @@ class _TelaState extends State<Tela> {
               Icon(Icons.verified_user_outlined, color: azul),
               SizedBox(width: 8),
               Text(
-                'Resultado da Análise de Segurança',
+                'Laudo Técnico de Segurança',
                 style: TextStyle(
-                  fontSize: 17,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: azul,
                 ),
@@ -432,13 +445,7 @@ class _TelaState extends State<Tela> {
             ],
           ),
           const Divider(height: 24),
-          SelectableText(
-            relatorio!,
-            style: const TextStyle(
-              fontSize: 15,
-              height: 1.5,
-            ),
-          ),
+          construirLaudoVisual(relatorio!),
         ],
       ),
     );

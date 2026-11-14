@@ -34,67 +34,65 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  
-Future<void> _handleLogin() async {
-  if (!_formKey.currentState!.validate()) {
-    return;
-  }
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
-  try {
-    final resposta = await http.post(
-      Uri.parse('http://localhost:8080/api/login'),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'email': _emailController.text.trim(),
-        'senha': _passwordController.text,
-      }),
-    );
+    try {
+      final resposta = await http.post(
+        Uri.parse('http://localhost:8080/api/login'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'email': _emailController.text.trim(),
+          'senha': _passwordController.text,
+        }),
+      );
 
-    final dados = jsonDecode(resposta.body);
+      final dados = jsonDecode(resposta.body);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-if (resposta.statusCode == 200) {
-  UsuarioLogado.definirUsuario(
-    id: dados['idCliente'],
-    nomeUsuario: dados['nome'],
-    emailUsuario: dados['email'],
-  );
+      if (resposta.statusCode == 200) {
+        UsuarioLogado.definirUsuario(
+          id: dados['idCliente'],
+          nomeUsuario: dados['nome'],
+          emailUsuario: dados['email'],
+        );
 
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(
-      builder: (context) => const Tela(),
-    ),
-  );
-} else {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(
-        dados['mensagem'] ?? 'E-mail ou senha incorretos.',
-      ),
-      backgroundColor: Colors.red,
-      behavior: SnackBarBehavior.floating,
-    ),
-  );
-}
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const Tela(),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              dados['mensagem'] ?? 'E-mail ou senha incorretos.',
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
 
-  } catch (e) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Não foi possível conectar ao servidor Java.',
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Não foi possível conectar ao servidor Java.',
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
         ),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+      );
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -109,8 +107,8 @@ if (resposta.statusCode == 200) {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF00BFFF), // azul no topo
-              Color(0xFF87CEEB), // azul no fundo
+              Color(0xFF1E3A8A), // azul House Security no topo
+              Color(0xFF2A4B9C), // azul House Security no fundo
             ],
           ),
         ),
@@ -134,13 +132,13 @@ if (resposta.statusCode == 200) {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00BFFF).withValues(alpha: 0.5),
+                          color: const Color(0xFF1E3A8A).withValues(alpha: 0.12),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
                           Icons.lock_outline_rounded,
                           size: 48,
-                          color: Color(0xFF2D3436),
+                          color: Color(0xFF1E3A8A),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -250,7 +248,7 @@ if (resposta.statusCode == 200) {
                         child: ElevatedButton(
                           onPressed: _handleLogin,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00BFFF),
+                            backgroundColor: const Color(0xFF1E3A8A),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -277,25 +275,24 @@ if (resposta.statusCode == 200) {
                             'Não tem uma conta? ',
                             style: TextStyle(color: Colors.grey[600]),
                           ),
-                          
-TextButton(
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const TelaCadastroOpcaoC(),
-      ),
-    );
-  },
-  child: const Text(
-    'Cadastre-se',
-    style: TextStyle(
-      color: Color(0xFF2D3436),
-      fontWeight: FontWeight.bold,
-    ),
-  ),
-),
-
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const TelaCadastroOpcaoC(),
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              'Cadastre-se',
+                              style: TextStyle(
+                                color: Color(0xFF2D3436),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -319,7 +316,7 @@ class MyApp extends StatelessWidget {
       title: 'Login App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6C5CE7)),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1E3A8A)),
         useMaterial3: true,
       ),
       home: const LoginPage(),
