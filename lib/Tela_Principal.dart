@@ -1,11 +1,13 @@
-
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 const azul = Color(0xFF1E3A8A);
 const limiteArquivo = 20 * 1024 * 1024; // 20 MB
+const urlBackend = 'http://localhost:8080/api/analise';
 
 class Tela extends StatefulWidget {
   const Tela({super.key});
@@ -18,13 +20,16 @@ class _TelaState extends State<Tela> {
   PlatformFile? arquivo;
   Uint8List? imagemBytes;
   String? erro;
+  String? relatorio;
   bool selecionando = false;
+  bool analisando = false;
 
   Future<void> escolherImagem() async {
     try {
       setState(() {
         selecionando = true;
         erro = null;
+        relatorio = null;
       });
 
       final selecionado = await FilePicker.pickFile(
@@ -34,13 +39,11 @@ class _TelaState extends State<Tela> {
 
       if (!mounted) return;
 
-      // O usuário cancelou a seleção.
       if (selecionado == null) {
         setState(() => selecionando = false);
         return;
       }
 
-      // Verifica a extensão.
       final extensao = selecionado.extension?.toLowerCase() ?? '';
       const extensoesPermitidas = ['png', 'jpg', 'jpeg'];
 
@@ -52,7 +55,6 @@ class _TelaState extends State<Tela> {
         return;
       }
 
-      // Verifica o tamanho antes de carregar a imagem.
       final tamanho = await selecionado.length();
 
       if (tamanho != null && tamanho > limiteArquivo) {
@@ -63,7 +65,6 @@ class _TelaState extends State<Tela> {
         return;
       }
 
-      // Lê o conteúdo da imagem.
       final dados = await selecionado.readAsBytes();
 
       if (!mounted) return;
@@ -81,6 +82,7 @@ class _TelaState extends State<Tela> {
         imagemBytes = dados;
         selecionando = false;
         erro = null;
+        relatorio = null;
       });
     } catch (e) {
       if (!mounted) return;
@@ -92,11 +94,59 @@ class _TelaState extends State<Tela> {
     }
   }
 
+  Future<void> analisarPlanta() async {
+    if (imagemBytes == null || arquivo == null) return;
+
+    setState(() {
+      analisando = true;
+      erro = null;
+      relatorio = null;
+    });
+
+    try {
+      final request = http.MultipartRequest('POST', Uri.parse(urlBackend));
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'arquivo',
+          imagemBytes!,
+          filename: arquivo!.name,
+        ),
+      );
+
+      final streamedResponse = await request.send();
+      final responseBody = await streamedResponse.stream.bytesToString();
+      final Map<String, dynamic> jsonResp = jsonDecode(responseBody);
+
+      if (!mounted) return;
+
+      if (streamedResponse.statusCode == 200) {
+        setState(() {
+          relatorio = jsonResp['relatorio']?.toString() ?? 'Análise concluída.';
+          analisando = false;
+        });
+      } else {
+        setState(() {
+          erro = jsonResp['mensagem']?.toString() ??
+              'Erro ao analisar a planta (código ${streamedResponse.statusCode}).';
+          analisando = false;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        analisando = false;
+        erro = 'Falha na comunicação com o servidor. Verifique se o back-end está ativo.';
+      });
+    }
+  }
+
   void removerImagem() {
     setState(() {
       arquivo = null;
       imagemBytes = null;
       erro = null;
+      relatorio = null;
     });
   }
 
@@ -138,7 +188,7 @@ class _TelaState extends State<Tela> {
                 const SizedBox(height: 8),
                 Text(
                   'Selecione a planta da sua residência para '
-                  'prepará-la para a análise de segurança.',
+                  'realizar a análise de segurança com IA.',
                   style: TextStyle(
                     fontSize: 15,
                     color: Colors.grey.shade700,
@@ -153,20 +203,54 @@ class _TelaState extends State<Tela> {
 
                 if (erro != null) ...[
                   const SizedBox(height: 16),
-                  Text(
-                    erro!,
-                    style: const TextStyle(
-                      color: Colors.red,
-                      fontSize: 14,
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Text(
+                      erro!,
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ],
 
+                if (relatorio != null) ...[
+                  const SizedBox(height: 24),
+                  _cardRelatorio(),
+                ],
+
                 const SizedBox(height: 24),
 
-                if (imagemBytes != null)
+                if (imagemBytes != null) ...[
+                  FilledButton.icon(
+                    onPressed: analisando ? null : analisarPlanta,
+                    icon: analisando
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.security),
+                    label: Text(
+                      analisando ? 'Analisando planta...' : 'Analisar planta com IA',
+                    ),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: azul,
+                      minimumSize: const Size.fromHeight(52),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   OutlinedButton.icon(
-                    onPressed: removerImagem,
+                    onPressed: analisando ? null : removerImagem,
                     icon: const Icon(Icons.delete_outline),
                     label: const Text('Remover imagem'),
                     style: OutlinedButton.styleFrom(
@@ -174,6 +258,7 @@ class _TelaState extends State<Tela> {
                       minimumSize: const Size.fromHeight(50),
                     ),
                   ),
+                ],
 
                 const SizedBox(height: 16),
 
@@ -194,18 +279,6 @@ class _TelaState extends State<Tela> {
                         ),
                       ],
                     ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                const Text(
-                  'A integração com o serviço de análise será '
-                  'implementada posteriormente.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
                   ),
                 ),
               ],
@@ -321,7 +394,7 @@ class _TelaState extends State<Tela> {
         ),
         const SizedBox(height: 16),
         OutlinedButton.icon(
-          onPressed: selecionando ? null : escolherImagem,
+          onPressed: (selecionando || analisando) ? null : escolherImagem,
           icon: const Icon(Icons.swap_horiz),
           label: const Text('Trocar imagem'),
           style: OutlinedButton.styleFrom(
@@ -329,6 +402,45 @@ class _TelaState extends State<Tela> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _cardRelatorio() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: azul.withOpacity(0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.verified_user_outlined, color: azul),
+              SizedBox(width: 8),
+              Text(
+                'Resultado da Análise de Segurança',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: azul,
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 24),
+          SelectableText(
+            relatorio!,
+            style: const TextStyle(
+              fontSize: 15,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
