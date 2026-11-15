@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 const azul = Color(0xFF1E3A8A);
-const urlListagem = 'http://localhost:8080/api/analises';
+const urlListagem = 'https://house-security-api.onrender.com/api/analises';
 
 class TelaHistorico extends StatefulWidget {
   const TelaHistorico({super.key});

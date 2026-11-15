@@ -8,7 +8,7 @@ import 'Tela_Historico.dart';
 
 const azul = Color(0xFF1E3A8A);
 const limiteArquivo = 20 * 1024 * 1024; // 20 MB
-const urlBackend = 'http://localhost:8080/api/analise';
+const urlBackend = 'https://house-security-api.onrender.com/api/analise';
 
 class Tela extends StatefulWidget {
   const Tela({super.key});
