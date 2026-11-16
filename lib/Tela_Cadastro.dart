@@ -74,7 +74,7 @@ class _TelaCadastroOpcaoCState extends State<TelaCadastroOpcaoC> {
     try {
       final resposta = await http
           .post(
-            Uri.parse('http://localhost:8080/api/cadastro'),
+            Uri.parse('https://house-security-api.onrender.com/api/cadastro'),
             headers: {
               'Content-Type': 'application/json; charset=UTF-8',
             },
