@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'usuario_logado.dart';
 
 const azul = Color(0xFF1E3A8A);
 const urlListagem = 'https://house-security-api.onrender.com/api/analises';
@@ -32,7 +33,23 @@ class _TelaHistoricoState extends State<TelaHistorico> {
     });
 
     try {
-      final response = await http.get(Uri.parse(urlListagem));
+     final idCliente = UsuarioLogado.idCliente;
+
+if (idCliente == null) {
+  setState(() {
+    erro = 'Usuário não identificado. Faça login novamente.';
+    carregando = false;
+  });
+  return;
+}
+
+final uri = Uri.parse(urlListagem).replace(
+  queryParameters: {
+    'idCliente': idCliente.toString(),
+  },
+);
+
+final response = await http.get(uri);
       if (!mounted) return;
 
       if (response.statusCode == 200) {
@@ -86,7 +103,26 @@ class _TelaHistoricoState extends State<TelaHistorico> {
     setState(() => idExcluindo = id);
 
     try {
-      final response = await http.delete(Uri.parse('$urlListagem/$id'));
+     final idCliente = UsuarioLogado.idCliente;
+
+if (idCliente == null) {
+  setState(() => idExcluindo = null);
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Usuário não identificado. Faça login novamente.'),
+    ),
+  );
+  return;
+}
+
+final uri = Uri.parse('$urlListagem/$id').replace(
+  queryParameters: {
+    'idCliente': idCliente.toString(),
+  },
+);
+
+final response = await http.delete(uri);
       if (!mounted) return;
 
       if (response.statusCode == 200 || response.statusCode == 204) {

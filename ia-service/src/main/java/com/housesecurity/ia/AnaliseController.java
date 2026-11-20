@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -35,8 +36,9 @@ public class AnaliseController {
         value = "/analise",
         consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
-    public ResponseEntity analisar(
-            @RequestParam("arquivo") MultipartFile arquivo) {
+ public ResponseEntity analisar(
+        @RequestParam("arquivo") MultipartFile arquivo,
+        @RequestParam("idCliente") Integer idCliente) {
 
         if (arquivo == null || arquivo.isEmpty()) {
             return ResponseEntity.badRequest().body(
@@ -86,6 +88,7 @@ public class AnaliseController {
             registro.setUrlArquivo(Files.readAllBytes(arquivoTemporario));
             registro.setAnaliseIa(relatorio);
             registro.setCriacao(LocalDateTime.now());
+            registro.setIdCliente(idCliente);
             atestadoRepository.save(registro);
 
             return ResponseEntity.ok(
@@ -117,24 +120,33 @@ public class AnaliseController {
         }
     }
 
-    @GetMapping("/analises")
-    public ResponseEntity listarAnalises() {
-        return ResponseEntity.ok(
-            atestadoRepository.findAllByOrderByCriacaoDesc()
+@GetMapping("/analises")
+public ResponseEntity listarAnalises(
+        @RequestParam("idCliente") Integer idCliente) {
+
+    return ResponseEntity.ok(
+        atestadoRepository.findAllByIdClienteOrderByCriacaoDesc(idCliente)
+    );
+}
+
+   @DeleteMapping("/analises/{id}")
+public ResponseEntity excluirAnalise(
+        @PathVariable Integer id,
+        @RequestParam("idCliente") Integer idCliente) {
+
+    Optional<Atestado> registro =
+            atestadoRepository.findByIdAtestadoAndIdCliente(id, idCliente);
+
+    if (registro.isEmpty()) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+            Map.of("mensagem", "Relatório não encontrado.")
         );
     }
 
-    @DeleteMapping("/analises/{id}")
-    public ResponseEntity excluirAnalise(@PathVariable Integer id) {
-        if (!atestadoRepository.existsById(id)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                Map.of("mensagem", "Relatório não encontrado.")
-            );
-        }
+    atestadoRepository.delete(registro.get());
 
-        atestadoRepository.deleteById(id);
-        return ResponseEntity.ok(
-            Map.of("mensagem", "Relatório excluído com sucesso.")
-        );
-    }
+    return ResponseEntity.ok(
+        Map.of("mensagem", "Relatório excluído com sucesso.")
+    );
+}
 }

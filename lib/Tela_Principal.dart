@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'usuario_logado.dart';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -61,7 +62,7 @@ class _TelaState extends State<Tela> {
       if (tamanho != null && tamanho > limiteArquivo) {
         setState(() {
           selecionando = false;
-          erro = 'A imagem deve ter no máximo 20 MB.';
+          erro = 'A imagem deve ter no máximo 1 MB.';
         });
         return;
       }
@@ -73,7 +74,7 @@ class _TelaState extends State<Tela> {
       if (dados.length > limiteArquivo) {
         setState(() {
           selecionando = false;
-          erro = 'A imagem deve ter no máximo 20 MB.';
+          erro = 'A imagem deve ter no máximo 1 MB.';
         });
         return;
       }
@@ -106,6 +107,17 @@ class _TelaState extends State<Tela> {
 
     try {
       final request = http.MultipartRequest('POST', Uri.parse(urlBackend));
+      final idCliente = UsuarioLogado.idCliente;
+
+if (idCliente == null) {
+  setState(() {
+    erro = 'Usuário não identificado. Faça login novamente.';
+    analisando = false;
+  });
+  return;
+}
+
+request.fields['idCliente'] = idCliente.toString();
       request.files.add(
         http.MultipartFile.fromBytes(
           'arquivo',
@@ -287,7 +299,7 @@ class _TelaState extends State<Tela> {
                         Expanded(
                           child: Text(
                             'Formatos aceitos: PNG, JPG e JPEG. '
-                            'Tamanho máximo: 20 MB.',
+                            'Tamanho máximo: 1 MB.',
                           ),
                         ),
                       ],
