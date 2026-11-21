@@ -56,11 +56,12 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
 
       if (resposta.statusCode == 200) {
-        UsuarioLogado.definirUsuario(
-          id: dados['idCliente'],
-          nomeUsuario: dados['nome'],
-          emailUsuario: dados['email'],
-        );
+       UsuarioLogado.definirUsuario(
+  id: dados['idCliente'],
+  nomeUsuario: dados['nome'],
+  emailUsuario: dados['email'],
+  tokenUsuario: dados['token'],
+);
 
         Navigator.pushReplacement(
           context,

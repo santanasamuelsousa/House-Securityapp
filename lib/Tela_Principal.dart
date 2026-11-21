@@ -95,65 +95,68 @@ class _TelaState extends State<Tela> {
       });
     }
   }
+Future<void> analisarPlanta() async {
+  if (imagemBytes == null || arquivo == null) return;
 
-  Future<void> analisarPlanta() async {
-    if (imagemBytes == null || arquivo == null) return;
-
-    setState(() {
-      analisando = true;
-      erro = null;
-      relatorio = null;
-    });
-
-    try {
-      final request = http.MultipartRequest('POST', Uri.parse(urlBackend));
-      final idCliente = UsuarioLogado.idCliente;
-
-if (idCliente == null) {
   setState(() {
-    erro = 'Usuário não identificado. Faça login novamente.';
-    analisando = false;
+    analisando = true;
+    erro = null;
+    relatorio = null;
   });
-  return;
-}
 
-request.fields['idCliente'] = idCliente.toString();
-      request.files.add(
-        http.MultipartFile.fromBytes(
-          'arquivo',
-          imagemBytes!,
-          filename: arquivo!.name,
-        ),
-      );
+  try {
+    final token = UsuarioLogado.token;
 
-      final streamedResponse = await request.send();
-      final responseBody = await streamedResponse.stream.bytesToString();
-      final Map<String, dynamic> jsonResp = jsonDecode(responseBody);
-
-      if (!mounted) return;
-
-      if (streamedResponse.statusCode == 200) {
-        setState(() {
-          relatorio = jsonResp['relatorio']?.toString() ?? 'Análise concluída.';
-          analisando = false;
-        });
-      } else {
-        setState(() {
-          erro = jsonResp['mensagem']?.toString() ??
-              'Erro ao analisar a planta (código ${streamedResponse.statusCode}).';
-          analisando = false;
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-
+    if (token == null || token.isEmpty) {
       setState(() {
+        erro = 'Sessão inválida. Faça login novamente.';
         analisando = false;
-        erro = 'Falha na comunicação com o servidor. Verifique se o back-end está ativo.';
+      });
+      return;
+    }
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse(urlBackend),
+    );
+
+    request.headers['Authorization'] = 'Bearer $token';
+
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'arquivo',
+        imagemBytes!,
+        filename: arquivo!.name,
+      ),
+    );
+
+    final streamedResponse = await request.send();
+    final responseBody = await streamedResponse.stream.bytesToString();
+    final Map<String, dynamic> jsonResp = jsonDecode(responseBody);
+
+    if (!mounted) return;
+
+    if (streamedResponse.statusCode == 200) {
+      setState(() {
+        relatorio = jsonResp['relatorio']?.toString() ?? 'Análise concluída.';
+        analisando = false;
+      });
+    } else {
+      setState(() {
+        erro = jsonResp['mensagem']?.toString() ??
+            'Erro ao analisar a planta (código ${streamedResponse.statusCode}).';
+        analisando = false;
       });
     }
-  }
+  } catch (e) {
+    if (!mounted) return;
 
+    setState(() {
+      analisando = false;
+      erro = 'Falha na comunicação com o servidor. Verifique se o back-end está ativo.';
+    });
+  }
+}
   void removerImagem() {
     setState(() {
       arquivo = null;

@@ -27,123 +27,135 @@ class _TelaHistoricoState extends State<TelaHistorico> {
   }
 
   Future<void> carregarHistorico() async {
-    setState(() {
-      carregando = true;
-      erro = null;
-    });
-
-    try {
-     final idCliente = UsuarioLogado.idCliente;
-
-if (idCliente == null) {
   setState(() {
-    erro = 'Usuário não identificado. Faça login novamente.';
-    carregando = false;
+    carregando = true;
+    erro = null;
   });
-  return;
-}
 
-final uri = Uri.parse(urlListagem).replace(
-  queryParameters: {
-    'idCliente': idCliente.toString(),
-  },
-);
+  try {
+    final token = UsuarioLogado.token;
 
-final response = await http.get(uri);
-      if (!mounted) return;
-
-      if (response.statusCode == 200) {
-        final List dados = jsonDecode(utf8.decode(response.bodyBytes));
-        setState(() {
-          analises = dados;
-          analiseSelecionada = analises.isNotEmpty ? analises.first : null;
-          carregando = false;
-        });
-      } else {
-        setState(() {
-          erro = 'Erro ao carregar histórico (${response.statusCode}).';
-          carregando = false;
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
+    if (token == null || token.isEmpty) {
       setState(() {
-        erro = 'Falha ao conectar com o servidor.';
+        erro = 'Sessão inválida. Faça login novamente.';
+        carregando = false;
+      });
+      return;
+    }
+
+    final response = await http.get(
+      Uri.parse(urlListagem),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (!mounted) return;
+
+    if (response.statusCode == 200) {
+      final List dados = jsonDecode(utf8.decode(response.bodyBytes));
+
+      setState(() {
+        analises = dados;
+        analiseSelecionada = analises.isNotEmpty ? analises.first : null;
+        carregando = false;
+      });
+    } else {
+      setState(() {
+        erro = 'Erro ao carregar histórico (${response.statusCode}).';
         carregando = false;
       });
     }
+  } catch (e) {
+    if (!mounted) return;
+
+    setState(() {
+      erro = 'Falha ao conectar com o servidor.';
+      carregando = false;
+    });
   }
+}
+ Future<void> confirmarExclusao(Map item) async {
+  final int? id = int.tryParse(item['idAtestado']?.toString() ?? '');
+  if (id == null) return;
 
-  Future<void> confirmarExclusao(Map item) async {
-    final int? id = int.tryParse(item['idAtestado']?.toString() ?? '');
-    if (id == null) return;
+  final idTexto = id.toString().padLeft(2, '0');
 
-    final idTexto = id.toString().padLeft(2, '0');
-
-    final confirmar = await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Excluir relatório'),
-        content: Text('Deseja excluir o relatório #$idTexto?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Excluir'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmar != true || !mounted) return;
-    setState(() => idExcluindo = id);
-
-    try {
-     final idCliente = UsuarioLogado.idCliente;
-
-if (idCliente == null) {
-  setState(() => idExcluindo = null);
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('Usuário não identificado. Faça login novamente.'),
+  final confirmar = await showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Excluir relatório'),
+      content: Text('Deseja excluir o relatório #$idTexto?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          style: FilledButton.styleFrom(backgroundColor: Colors.red),
+          child: const Text('Excluir'),
+        ),
+      ],
     ),
   );
-  return;
-}
 
-final uri = Uri.parse('$urlListagem/$id').replace(
-  queryParameters: {
-    'idCliente': idCliente.toString(),
-  },
-);
+  if (confirmar != true || !mounted) return;
 
-final response = await http.delete(uri);
-      if (!mounted) return;
+  setState(() => idExcluindo = id);
 
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        setState(() {
-          analises.removeWhere((a) => a['idAtestado'] == item['idAtestado']);
-          if (analiseSelecionada?['idAtestado'] == item['idAtestado']) {
-            analiseSelecionada = analises.isNotEmpty ? analises.first : null;
-          }
-          idExcluindo = null;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Relatório #$idTexto excluído.')),
-        );
-      } else {
-        setState(() => idExcluindo = null);
-      }
-    } catch (e) {
-      if (mounted) setState(() => idExcluindo = null);
+  try {
+    final token = UsuarioLogado.token;
+
+    if (token == null || token.isEmpty) {
+      setState(() => idExcluindo = null);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sessão inválida. Faça login novamente.'),
+        ),
+      );
+      return;
     }
-  }
 
+    final response = await http.delete(
+      Uri.parse('$urlListagem/$id'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (!mounted) return;
+
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      setState(() {
+        analises.removeWhere((a) => a['idAtestado'] == item['idAtestado']);
+
+        if (analiseSelecionada?['idAtestado'] == item['idAtestado']) {
+          analiseSelecionada = analises.isNotEmpty ? analises.first : null;
+        }
+
+        idExcluindo = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Relatório #$idTexto excluído.')),
+      );
+    } else {
+      setState(() => idExcluindo = null);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Não foi possível excluir o relatório (${response.statusCode}).'),
+        ),
+      );
+    }
+  } catch (e) {
+    if (!mounted) return;
+
+    setState(() => idExcluindo = null);
+  }
+}
   String formatarData(String? iso) {
     final dt = DateTime.tryParse(iso ?? '');
     if (dt == null) return '-';

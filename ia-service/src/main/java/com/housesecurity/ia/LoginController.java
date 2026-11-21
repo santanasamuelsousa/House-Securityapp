@@ -1,7 +1,10 @@
+
 package com.housesecurity.ia;
 
 import com.housesecurity.ia.model.Cliente;
 import com.housesecurity.ia.service.LoginService;
+import com.housesecurity.ia.config.JwtService;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,9 +17,14 @@ import java.util.Optional;
 public class LoginController {
 
     private final LoginService loginService;
+    private final JwtService jwtService;
 
-    public LoginController(LoginService loginService) {
+    public LoginController(
+            LoginService loginService,
+            JwtService jwtService) {
+
         this.loginService = loginService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping("/login")
@@ -49,12 +57,16 @@ public class LoginController {
 
         Cliente cliente = resultado.get();
 
+        // Gera o token JWT do usuário
+        String token = jwtService.gerarToken(cliente);
+
         return ResponseEntity.ok(
                 Map.of(
                         "mensagem", "Login realizado com sucesso.",
                         "idCliente", cliente.getIdCliente(),
                         "nome", cliente.getNome(),
-                        "email", cliente.getEmail()
+                        "email", cliente.getEmail(),
+                        "token", token
                 )
         );
     }

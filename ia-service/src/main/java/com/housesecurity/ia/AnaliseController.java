@@ -1,3 +1,4 @@
+
 package com.housesecurity.ia;
 
 import com.housesecurity.ia.model.Atestado;
@@ -7,6 +8,7 @@ import com.housesecurity.ia.service.GroqService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -36,9 +38,11 @@ public class AnaliseController {
         value = "/analise",
         consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
- public ResponseEntity analisar(
-        @RequestParam("arquivo") MultipartFile arquivo,
-        @RequestParam("idCliente") Integer idCliente) {
+    public ResponseEntity<?> analisar(
+            @RequestParam("arquivo") MultipartFile arquivo,
+            Authentication authentication) {
+
+        Integer idCliente = (Integer) authentication.getPrincipal();
 
         if (arquivo == null || arquivo.isEmpty()) {
             return ResponseEntity.badRequest().body(
@@ -61,7 +65,6 @@ public class AnaliseController {
         }
 
         String extensao = nome.substring(nome.lastIndexOf("."));
-
         Path arquivoTemporario = null;
 
         try {
@@ -76,6 +79,7 @@ public class AnaliseController {
             );
 
             String verificacao = relatorio.trim().toUpperCase();
+
             if (verificacao.contains("NAO_E_PLANTA_RESIDENCIAL")
                     || verificacao.startsWith("NÃO É UMA PLANTA RESIDENCIAL")) {
                 return ResponseEntity.badRequest().body(
@@ -89,6 +93,7 @@ public class AnaliseController {
             registro.setAnaliseIa(relatorio);
             registro.setCriacao(LocalDateTime.now());
             registro.setIdCliente(idCliente);
+
             atestadoRepository.save(registro);
 
             return ResponseEntity.ok(
@@ -96,21 +101,18 @@ public class AnaliseController {
             );
 
         } catch (IOException e) {
-
             return ResponseEntity.badRequest().body(
                 Map.of("mensagem",
                     "Não foi possível processar o arquivo enviado.")
             );
 
         } catch (IllegalStateException e) {
-
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(
                 Map.of("mensagem",
                     "Não foi possível obter a análise, tente novamente em alguns instantes.")
             );
 
         } finally {
-
             if (arquivoTemporario != null) {
                 try {
                     Files.deleteIfExists(arquivoTemporario);
@@ -120,33 +122,37 @@ public class AnaliseController {
         }
     }
 
-@GetMapping("/analises")
-public ResponseEntity listarAnalises(
-        @RequestParam("idCliente") Integer idCliente) {
+    @GetMapping("/analises")
+    public ResponseEntity<?> listarAnalises(
+            Authentication authentication) {
 
-    return ResponseEntity.ok(
-        atestadoRepository.findAllByIdClienteOrderByCriacaoDesc(idCliente)
-    );
-}
+        Integer idCliente = (Integer) authentication.getPrincipal();
 
-   @DeleteMapping("/analises/{id}")
-public ResponseEntity excluirAnalise(
-        @PathVariable Integer id,
-        @RequestParam("idCliente") Integer idCliente) {
-
-    Optional<Atestado> registro =
-            atestadoRepository.findByIdAtestadoAndIdCliente(id, idCliente);
-
-    if (registro.isEmpty()) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-            Map.of("mensagem", "Relatório não encontrado.")
+        return ResponseEntity.ok(
+            atestadoRepository.findAllByIdClienteOrderByCriacaoDesc(idCliente)
         );
     }
 
-    atestadoRepository.delete(registro.get());
+    @DeleteMapping("/analises/{id}")
+    public ResponseEntity<?> excluirAnalise(
+            @PathVariable Integer id,
+            Authentication authentication) {
 
-    return ResponseEntity.ok(
-        Map.of("mensagem", "Relatório excluído com sucesso.")
-    );
-}
+        Integer idCliente = (Integer) authentication.getPrincipal();
+
+        Optional<Atestado> registro =
+            atestadoRepository.findByIdAtestadoAndIdCliente(id, idCliente);
+
+        if (registro.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                Map.of("mensagem", "Relatório não encontrado.")
+            );
+        }
+
+        atestadoRepository.delete(registro.get());
+
+        return ResponseEntity.ok(
+            Map.of("mensagem", "Relatório excluído com sucesso.")
+        );
+    }
 }
