@@ -207,7 +207,7 @@ Future<void> analisarPlanta() async {
               padding: const EdgeInsets.all(20),
               children: [
                 const Text(
-                  'Análise da planta residencial',
+                  'Análise de segurança da planta',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -215,8 +215,8 @@ Future<void> analisarPlanta() async {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Selecione a planta da sua residência para '
-                  'realizarmos a análise de segurança.',
+                  'Selecione a planta de uma residência, espaço público ou '
+                  'estabelecimento para realizarmos a análise de segurança.',
                   style: TextStyle(
                     fontSize: 15,
                     color: Colors.grey.shade700,
@@ -349,7 +349,7 @@ Future<void> analisarPlanta() async {
             Text(
               selecionando
                   ? 'Abrindo arquivos...'
-                  : 'Selecione a planta da sua residência',
+                  : 'Selecione a planta do imóvel ou espaço público',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 17,

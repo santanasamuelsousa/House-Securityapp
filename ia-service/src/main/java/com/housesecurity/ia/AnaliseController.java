@@ -1,4 +1,3 @@
-
 package com.housesecurity.ia;
 
 import com.housesecurity.ia.model.Atestado;
@@ -81,11 +80,12 @@ public class AnaliseController {
 
             String verificacao = relatorio.trim().toUpperCase();
 
-            if (verificacao.contains("NAO_E_PLANTA_RESIDENCIAL")
-                    || verificacao.startsWith("NÃO É UMA PLANTA RESIDENCIAL")) {
+            if (verificacao.contains("NAO_E_PLANTA_VALIDA")
+                    || verificacao.contains("NAO_E_PLANTA_RESIDENCIAL")
+                    || verificacao.startsWith("NÃO É UMA PLANTA")) {
                 return ResponseEntity.badRequest().body(
                     Map.of("mensagem",
-                        "Isto não é uma planta residencial. Por favor, troque o arquivo por uma planta residencial válida e tente novamente.")
+                        "Isto não é uma planta arquitetônica ou urbanística válida. Envie a planta de uma residência, espaço público ou estabelecimento e tente novamente.")
                 );
             }
 
